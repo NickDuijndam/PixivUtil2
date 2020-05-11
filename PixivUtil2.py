@@ -255,7 +255,7 @@ def process_image_bookmark(hide='n', start_page=1, end_page=0, tag='', sorting=N
         raise
 
 
-def get_image_bookmark(hide, start_page=1, end_page=0, tag='', sorting=None):
+def get_image_bookmark(hide, start_page=1, end_page=0, tag='', sorting=None, existing_list=None):
     """Get user's image bookmark"""
     total_list = list()
     i = start_page
@@ -291,7 +291,25 @@ def get_image_bookmark(hide, start_page=1, end_page=0, tag='', sorting=None):
         page.close()
 
         bookmarks = PixivBookmark.parseImageBookmark(page_str)
-        total_list.extend(bookmarks)
+
+        counter = 0
+
+        # If existing_list is set use it to detect images we've already written to the existing_list, stopping
+        # prematurely if more then 3 dupes were detected
+        if isinstance(existing_list, list):
+            for iter in range(len(bookmarks)):
+                if bookmarks[iter] in existing_list:
+                    counter = counter + 1
+
+                    if counter == 3:
+                        print("Found 3 already existing images, stopping prematurely.")
+                        return existing_list + total_list
+                else:
+                    counter = 0
+                    total_list.extend([bookmarks[iter]])
+        else:
+            total_list.extend(bookmarks)
+
         if len(bookmarks) == 0:
             print("No more images.")
             break
@@ -398,6 +416,34 @@ def export_bookmark(filename, hide='n', start_page=1, end_page=0, member_id=None
         raise
     except BaseException:
         PixivHelper.print_and_log('error', 'Error at export_bookmark(): {0}'.format(sys.exc_info()))
+        raise
+
+
+def export_bookmark_images(filename='images', hide='n', start_page=1, end_page=0):
+    if not filename.endswith('.txt'):
+        filename = filename + '.txt'
+
+    if os.path.exists(filename):
+        list_txt = list(map(lambda item: item.memberId, PixivListItem.parseList(filename, __config__.rootDirectory)))
+    else:
+        list_txt = list()
+
+    try:
+        total_list = list()
+        if hide != 'o':
+            print("Importing Bookmarks...")
+            total_list.extend(get_image_bookmark(False, start_page, end_page, '', None, list_txt))
+        if hide != 'n':
+            print("Importing Private Bookmarks...")
+            total_list.extend(get_image_bookmark(True, start_page, end_page, '', None, list_txt))
+
+        total_list = list(dict.fromkeys(total_list))
+        print("Result: ", str(len(total_list)), "items.")
+        PixivBookmark.exportImageList(total_list, filename)
+    except KeyboardInterrupt:
+        raise
+    except BaseException:
+        PixivHelper.print_and_log('error', 'Error at export_bookmark_images(): {0}'.format(sys.exc_info()))
         raise
 
 
@@ -581,6 +627,7 @@ def menu():
     print('------------------------')
     print('d. Manage database')
     print('e. Export online bookmark')
+    print('ei. Export online images bookmark')
     print('m. Export online user bookmark')
     print('i. Import list file')
     print('r. Reload config.ini')
@@ -932,7 +979,7 @@ def menu_download_by_group_id(opisvalid, args):
     process_from_group(group_id, limit, process_external)
 
 
-def menu_export_online_bookmark(opisvalid, args):
+def menu_export_online_bookmark(opisvalid, args, type = ''):
     __log__.info('Export Bookmark mode.')
     hide = "y"  # y|n|o
     filename = "export.txt"
@@ -951,7 +998,12 @@ def menu_export_online_bookmark(opisvalid, args):
     else:
         print("Invalid args: ", arg)
 
-    export_bookmark(filename, hide)
+    if type == 'images':
+        if filename == '':
+            filename = 'images.txt'
+        export_bookmark_images(filename, hide)
+    else:
+        export_bookmark(filename, hide)
 
 
 def menu_export_online_user_bookmark(opisvalid, args):
@@ -1254,6 +1306,7 @@ f3 - Download by post id (FANBOX)
 f4 - Download from followed artists (FANBOX)
  b - Batch Download from batch_job.json (experimental)
  e - Export online bookmark
+ ei - Export online images bookmark
  m - Export online user bookmark
  d - Manage database''')
     parser.add_option('-x', '--exitwhendone', dest='exitwhendone',
@@ -1320,6 +1373,8 @@ def main_loop(ewd, op_is_valid, selection, np_is_valid_local, args):
                 PixivBatchHandler.process_batch_job(sys.modules[__name__])
             elif selection == 'e':
                 menu_export_online_bookmark(op_is_valid, args)
+            elif selection == 'ei':
+                menu_export_online_bookmark(op_is_valid, args, 'images')
             elif selection == 'm':
                 menu_export_online_user_bookmark(op_is_valid, args)
             elif selection == 'd':

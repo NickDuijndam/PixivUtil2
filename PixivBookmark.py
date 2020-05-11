@@ -91,6 +91,18 @@ class PixivBookmark(object):
         writer.write('###END-OF-FILE###')
         writer.close()
 
+    @staticmethod
+    def exportImageList(l, filename):
+        if not filename.endswith('.txt'):
+            filename = filename + '.txt'
+        writer = codecs.open(filename, 'wb', encoding='utf-8')
+        writer.write(u'###Export date: ' + str(datetime.today()) + '###\n')
+        for item in l:
+            writer.write(str(item))
+            writer.write(u'\r\n')
+        writer.write('###END-OF-FILE###')
+        writer.close()
+
 
 class PixivNewIllustBookmark(object):
     '''Class for parsing New Illust from Bookmarks'''
