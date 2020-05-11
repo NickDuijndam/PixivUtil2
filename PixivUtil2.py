@@ -1284,7 +1284,7 @@ def set_console_title(title=''):
 
 def setup_option_parser():
     global __valid_options
-    __valid_options = ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'f1', 'f2', 'f3', 'f4', 'd', 'e', 'm', 'b')
+    __valid_options = ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'f1', 'f2', 'f3', 'f4', 'd', 'e', 'ei', 'm', 'b')
     parser = OptionParser()
     parser.add_option('-s', '--startaction', dest='startaction',
                       help='''Action you want to load your program with:
