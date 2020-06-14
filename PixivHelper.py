@@ -905,7 +905,8 @@ def ugoira2webm(ugoira_file,
                 break
 
         ret = p.wait()
-        shutil.move(tempname, exportname)
+        shutil.copy(tempname, exportname)
+        os.remove(tempname)
 
         if delete_ugoira:
             print_and_log('info', 'deleting ugoira {0}'.format(ugoira_file))
